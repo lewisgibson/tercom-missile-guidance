@@ -1,0 +1,36 @@
+name: Sanitizers
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    sanitizers:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake clang
+
+            - name: Configure
+              run: cmake --preset asan -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+
+            - name: Build
+              run: cmake --build build/asan
+
+            - name: Run Tests
+              run: ctest --preset asan

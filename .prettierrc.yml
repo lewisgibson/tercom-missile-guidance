@@ -1,0 +1,17 @@
+tabWidth: 4
+useTabs: false
+singleQuote: true
+trailingComma: all
+printWidth: 120
+
+overrides:
+    - files: ['*.yml', '*.yaml']
+      options:
+          tabWidth: 4
+    - files: ['*.md']
+      options:
+          tabWidth: 2
+          proseWrap: preserve
+    - files: ['*.json']
+      options:
+          tabWidth: 4

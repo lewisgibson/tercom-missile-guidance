@@ -1,0 +1,7 @@
+# Build, coverage, and packaging output
+build/
+coverage/
+dist/
+
+# Local worktrees
+.worktrees/

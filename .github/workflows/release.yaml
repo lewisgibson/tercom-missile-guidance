@@ -1,0 +1,99 @@
+name: Release
+
+# Manual only: triggered with "Run workflow" (workflow_dispatch). It builds the
+# library in Release, packages the static library, headers, and CMake package files
+# into a versioned tarball (v1.0.<run_number>), publishes that release, and refreshes
+# a rolling "latest". It deliberately does not run on push, so a release is only ever
+# cut when explicitly asked for.
+
+on:
+    workflow_dispatch: {}
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+              with:
+                  fetch-depth: 0
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++
+
+            - name: Compute Version
+              id: version
+              # run_number is monotonic, so every build gets a higher version than the last.
+              run: |
+                  echo "version=1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+            - name: Configure
+              # Stamp the published version so the installed package version matches the
+              # tarball name and the release tag (v1.0.<run_number>).
+              run: >
+                  cmake --preset release
+                  -DTERCOM_BUILD_TESTS=OFF -DTERCOM_BUILD_EXAMPLES=OFF -DTERCOM_BUILD_TOOLS=OFF
+                  -DTERCOM_VERSION=${{ steps.version.outputs.version }}
+
+            - name: Build
+              run: cmake --build build/release
+
+            - name: Package
+              id: package
+              # Install the library, headers, and find_package files into a staging tree,
+              # then archive it with a checksum so downstream projects can verify the download.
+              run: |
+                  set -euo pipefail
+                  version="${{ steps.version.outputs.version }}"
+                  staging="tercom-${version}-linux-x86_64"
+                  cmake --install build/release --prefix "dist/${staging}"
+                  cp LICENSE "dist/${staging}/LICENSE"
+                  tarball="${staging}.tar.gz"
+                  tar --create --gzip --file "dist/${tarball}" --directory dist "${staging}"
+                  ( cd dist && sha256sum "${tarball}" > "${tarball}.sha256" )
+                  echo "tarball=dist/${tarball}" >> "$GITHUB_OUTPUT"
+                  echo "checksum=dist/${tarball}.sha256" >> "$GITHUB_OUTPUT"
+
+            - name: Publish Versioned Release
+              uses: softprops/action-gh-release@v3.0.0
+              with:
+                  tag_name: v${{ steps.version.outputs.version }}
+                  name: v${{ steps.version.outputs.version }}
+                  body: |
+                      Automated build of `${{ github.sha }}`.
+
+                      | File | Description |
+                      | ---- | ----------- |
+                      | `tercom-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz` | Static library, headers, and CMake package files |
+                      | `*.sha256` | SHA-256 checksum of the tarball |
+
+                      Unpack the tarball and point `find_package(tercom)` at its prefix.
+                  draft: false
+                  prerelease: false
+                  files: |
+                      ${{ steps.package.outputs.tarball }}
+                      ${{ steps.package.outputs.checksum }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Update Latest Release
+              uses: softprops/action-gh-release@v3.0.0
+              with:
+                  tag_name: latest
+                  name: Latest Build
+                  body: |
+                      Rolling latest build, refreshed whenever a release is manually dispatched.
+
+                      This is version `v${{ steps.version.outputs.version }}` (`${{ github.sha }}`).
+                  draft: false
+                  prerelease: false
+                  files: |
+                      ${{ steps.package.outputs.tarball }}
+                      ${{ steps.package.outputs.checksum }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

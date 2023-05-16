@@ -1,0 +1,128 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 24,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "TERCOM_BUILD_EXAMPLES": "ON",
+                "TERCOM_BUILD_TESTS": "ON",
+                "TERCOM_BUILD_TOOLS": "ON"
+            }
+        },
+        {
+            "name": "dev",
+            "displayName": "Developer build (Debug)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Optimised build (RelWithDebInfo)",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "asan",
+            "displayName": "Debug + Address/UB sanitizers",
+            "inherits": "dev",
+            "cacheVariables": {
+                "TERCOM_ENABLE_SANITIZERS": "ON"
+            }
+        },
+        {
+            "name": "coverage",
+            "displayName": "Debug + coverage instrumentation",
+            "inherits": "dev",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "TERCOM_ENABLE_COVERAGE": "ON"
+            }
+        },
+        {
+            "name": "tidy",
+            "displayName": "Debug + clang-tidy",
+            "inherits": "dev",
+            "cacheVariables": {
+                "TERCOM_ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "cppcheck",
+            "displayName": "Debug + cppcheck",
+            "inherits": "dev",
+            "cacheVariables": {
+                "TERCOM_ENABLE_CPPCHECK": "ON"
+            }
+        },
+        {
+            "name": "strict-gcc",
+            "displayName": "Strict: GCC, warnings as errors",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
+                "TERCOM_WARNINGS_AS_ERRORS": "ON"
+            }
+        },
+        {
+            "name": "strict-clang",
+            "displayName": "Strict: Clang, warnings as errors",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "TERCOM_WARNINGS_AS_ERRORS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "dev", "configurePreset": "dev" },
+        { "name": "release", "configurePreset": "release" },
+        { "name": "asan", "configurePreset": "asan" },
+        { "name": "coverage", "configurePreset": "coverage" },
+        { "name": "strict-gcc", "configurePreset": "strict-gcc" },
+        { "name": "strict-clang", "configurePreset": "strict-clang" }
+    ],
+    "testPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error", "stopOnFailure": false }
+        },
+        {
+            "name": "asan",
+            "configurePreset": "asan",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error" }
+        },
+        {
+            "name": "strict-gcc",
+            "configurePreset": "strict-gcc",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error" }
+        },
+        {
+            "name": "strict-clang",
+            "configurePreset": "strict-clang",
+            "output": { "outputOnFailure": true },
+            "execution": { "noTestsAction": "error" }
+        }
+    ]
+}

@@ -1,0 +1,49 @@
+name: Coverage
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    coverage:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++ gcovr
+
+            - name: Configure
+              run: cmake --preset coverage
+
+            - name: Build
+              run: cmake --build build/coverage
+
+            - name: Run Tests
+              run: ctest --test-dir build/coverage --output-on-failure
+
+            - name: Generate Coverage Report
+              run: |
+                  mkdir --parents coverage
+                  gcovr --root . --filter 'src/' --filter 'include/' \
+                      --xml coverage/coverage.xml --html-details coverage/index.html \
+                      --print-summary --fail-under-line 90 build/coverage
+
+            - name: Upload Coverage Report
+              uses: actions/upload-artifact@v7.0.1
+              with:
+                  name: coverage-report
+                  path: coverage/

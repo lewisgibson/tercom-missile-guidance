@@ -1,0 +1,101 @@
+name: Lint
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    format:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Clang-Format
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends clang-format-18
+
+            - name: Verify Formatting
+              run: |
+                  mapfile -d '' files < <(find include src examples tools tests benchmarks scenarios \( -name '*.h' -o -name '*.cpp' \) -print0)
+                  echo "Checking ${#files[@]} files"
+                  if [ "${#files[@]}" -eq 0 ]; then
+                      echo "::error::No source files matched -- the directory list is stale" >&2
+                      exit 1
+                  fi
+                  clang-format-18 --dry-run --Werror "${files[@]}"
+
+    clang-tidy:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake clang clang-tidy
+
+            - name: Configure With Clang-Tidy
+              run: cmake --preset tidy -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DTERCOM_BUILD_BENCHMARKS=ON
+
+            - name: Build And Analyze
+              run: cmake --build build/tidy
+
+    cppcheck:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++ cppcheck
+
+            - name: Configure With Cppcheck
+              run: cmake --preset cppcheck -DTERCOM_BUILD_BENCHMARKS=ON
+
+            - name: Build And Analyze
+              run: cmake --build build/cppcheck
+
+    prettier:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Set Up Node.js
+              uses: actions/setup-node@v6.4.0
+              with:
+                  node-version: '24'
+
+            - name: Check Non-Code Formatting
+              run: npx --yes prettier@3.4.2 --check '**/*.{yml,yaml,json,md}'
+
+    actionlint:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Actionlint
+              run: |
+                  cd /tmp
+                  curl --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz | tar xz actionlint
+                  sudo mv actionlint /usr/local/bin/actionlint
+                  actionlint -version
+
+            - name: Lint Workflows
+              run: actionlint -no-color

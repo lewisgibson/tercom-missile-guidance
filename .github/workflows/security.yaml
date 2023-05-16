@@ -1,0 +1,79 @@
+name: Security
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    gitleaks:
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              # fetch-depth 0 so the scan can walk the full base-to-head commit range.
+              uses: actions/checkout@v6.0.3
+              with:
+                  fetch-depth: 0
+
+            - name: Install Gitleaks
+              run: |
+                  curl --silent --show-error --location https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+                      | sudo tar --extract --gzip --directory /usr/local/bin gitleaks
+                  sudo chmod +x /usr/local/bin/gitleaks
+                  gitleaks version
+
+            - name: Scan For Secrets In New Commits
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+                      echo "No base commit; scanning the head commit only"
+                      range="--max-count=1 ${HEAD_SHA}"
+                  else
+                      echo "Scanning range ${BASE_SHA}..${HEAD_SHA}"
+                      range="${BASE_SHA}..${HEAD_SHA}"
+                  fi
+                  gitleaks detect --source . --no-banner --verbose --log-opts="${range}"
+
+    codeql:
+        runs-on: ubuntu-24.04
+        permissions:
+            security-events: write
+            actions: read
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++
+
+            - name: Initialize CodeQL
+              uses: github/codeql-action/init@v4.36.2
+              with:
+                  languages: c-cpp
+                  queries: security-and-quality
+
+            - name: Configure
+              run: cmake --preset release -DTERCOM_BUILD_TESTS=OFF
+
+            - name: Build
+              run: cmake --build build/release
+
+            - name: Perform CodeQL Analysis
+              uses: github/codeql-action/analyze@v4.36.2
+              with:
+                  category: /language:c-cpp

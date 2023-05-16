@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest a capability or improvement
+labels: [enhancement]
+body:
+    - type: textarea
+      id: motivation
+      attributes:
+          label: Motivation
+          description: What problem would this solve?
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposal
+          description: What should the library do, and roughly how?
+      validations:
+          required: true

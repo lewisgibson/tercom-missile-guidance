@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a defect in the navigation library or simulator
+labels: [bug]
+body:
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened
+          description: A clear description of the defect, including the wrong output.
+      validations:
+          required: true
+    - type: textarea
+      id: reproduce
+      attributes:
+          label: Reproduction
+          description: Minimal steps, inputs (DEM, route, parameters), and commands.
+      validations:
+          required: true
+    - type: input
+      id: commit
+      attributes:
+          label: Commit
+          description: The commit SHA you observed this on.
+      validations:
+          required: true
+    - type: input
+      id: toolchain
+      attributes:
+          label: Toolchain
+          description: Compiler, version, and OS.
+      validations:
+          required: true

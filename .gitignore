@@ -1,0 +1,56 @@
+# Build output
+/build/
+/build-*/
+/out/
+/install/
+/dist/
+cmake-build-*/
+
+# CMake user files
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# Local worktrees (never tracked)
+.worktrees/
+
+# Compiled objects and libraries
+*.d
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+*.so
+*.so.*
+*.dylib
+*.dll
+*.a
+*.lib
+*.la
+*.lai
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Test and coverage artifacts
+*.gcda
+*.gcno
+*.gcov
+/coverage/
+*.profraw
+*.profdata
+Testing/
+
+# Generated example/tool output (default paths, when run from the repo root)
+/sitl-convergence.csv
+/terrain.asc
+
+# Editor and OS noise
+.cache/
+.DS_Store
+*.swp

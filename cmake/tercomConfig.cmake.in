@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+# Package configuration for find_package(tercom). Exposes the tercom::tercom
+# target. The library is header-light and has no external runtime dependencies.
+include("${CMAKE_CURRENT_LIST_DIR}/tercomTargets.cmake")
+
+check_required_components(tercom)

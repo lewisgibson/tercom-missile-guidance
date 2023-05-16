@@ -1,0 +1,103 @@
+name: Build
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+    contents: read
+
+jobs:
+    compile:
+        name: compile (${{ matrix.preset }}, ${{ matrix.buildType }})
+        runs-on: ubuntu-24.04
+        strategy:
+            fail-fast: false
+            matrix:
+                preset: [strict-gcc, strict-clang]
+                buildType: [Debug, Release]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++ clang
+
+            - name: Configure
+              # Benchmarks build here too so they stay compilable under the strict
+              # warnings-as-errors set on both compilers (they are off by default).
+              run: cmake --preset ${{ matrix.preset }} -DCMAKE_BUILD_TYPE=${{ matrix.buildType }} -DTERCOM_BUILD_BENCHMARKS=ON
+
+            - name: Build
+              run: cmake --build build/${{ matrix.preset }}
+
+            - name: Run Tests
+              run: ctest --preset ${{ matrix.preset }}
+
+    install-consumer:
+        name: install + find_package smoke test
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6.0.3
+
+            - name: Install Toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install --yes --no-install-recommends ninja-build cmake g++
+
+            # Build only the library (no tests, examples, or tools) so this job
+            # isolates the install/export path that downstream consumers depend on.
+            - name: Configure And Build (Release)
+              run: |
+                  cmake --preset release -DTERCOM_BUILD_TESTS=OFF -DTERCOM_BUILD_EXAMPLES=OFF -DTERCOM_BUILD_TOOLS=OFF
+                  cmake --build build/release
+
+            - name: Install To Staging Prefix
+              run: cmake --install build/release --prefix "$RUNNER_TEMP/tercom-prefix"
+
+            # Configure and build a throwaway project that consumes the installed
+            # package exactly as a downstream user would: find_package + link +
+            # include a public header. This fails the build if the exported targets,
+            # the package config, the version file, or the install include interface
+            # ever regress -- something the normal compile matrix never exercises.
+            - name: Build A Downstream find_package Consumer
+              run: |
+                  set -euo pipefail
+                  consumer="$RUNNER_TEMP/consumer"
+                  mkdir --parents "$consumer"
+                  cat > "$consumer/CMakeLists.txt" <<'EOF'
+                  cmake_minimum_required(VERSION 3.24)
+                  project(tercom_consumer CXX)
+                  find_package(tercom REQUIRED)
+                  add_executable(consumer main.cpp)
+                  target_link_libraries(consumer PRIVATE tercom::tercom)
+                  EOF
+                  cat > "$consumer/main.cpp" <<'EOF'
+                  #include "tercom/geo/geodesy.h"
+                  #include "tercom/tercom.h"
+                  int main() {
+                      // Call an out-of-line exported function so the linker must resolve a
+                      // real symbol from libtercom.a: a broken archive fails here instead
+                      // of passing silently. At the equator the ECEF x is the semi-major
+                      // axis (> 0), so this returns success.
+                      const TERCOM::Math::Vec3 ecef = TERCOM::Geo::GeodeticToEcef(TERCOM::Geo::GeoPoint{0.0, 0.0, 0.0});
+                      return ecef.x > 0.0 ? 0 : 1;
+                  }
+                  EOF
+                  cmake -S "$consumer" -B "$consumer/build" -G Ninja \
+                      -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/tercom-prefix"
+                  cmake --build "$consumer/build"
+                  # Run it so the runtime assertion gates the job too (set -e above
+                  # fails the step on a non-zero exit): a correct build exits 0, a
+                  # regression in the exported GeodeticToEcef fails here.
+                  "$consumer/build/consumer"
