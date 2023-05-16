@@ -1,0 +1,6 @@
+add_executable(tracking src/main.cpp)
+target_link_libraries(tracking PRIVATE tercom::tercom)
+tercom_target_warnings(tracking)
+tercom_target_sanitizers(tracking)
+tercom_target_coverage(tracking)
+tercom_target_optimization(tracking)

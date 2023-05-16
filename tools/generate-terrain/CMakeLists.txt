@@ -1,0 +1,6 @@
+add_executable(generate-terrain src/main.cpp)
+target_link_libraries(generate-terrain PRIVATE tercom::tercom)
+tercom_target_warnings(generate-terrain)
+tercom_target_sanitizers(generate-terrain)
+tercom_target_coverage(generate-terrain)
+tercom_target_optimization(generate-terrain)
