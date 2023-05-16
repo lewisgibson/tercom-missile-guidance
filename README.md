@@ -21,5 +21,5 @@ Requirements:
 Use the existing build script:
 
 ```bash
-./scripts/build.sh
+./build.sh
 ```
