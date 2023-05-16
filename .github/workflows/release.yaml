@@ -1,0 +1,17 @@
+name: Build
+on: push
+jobs:
+    build:
+        name: Linux-amd64
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3.5.0
+
+            - name: Build
+              run: ./build.sh
+
+            - uses: actions/upload-artifact@v3
+              with:
+                  name: tercom-missile-guidance-${{ github.sha }}
+                  path: ./build/bin

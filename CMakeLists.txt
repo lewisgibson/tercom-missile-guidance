@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.24.2)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+project(tercom-missile-guidance CXX)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+source_group(Source FILES ${SOURCES})
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND md5sum ${PROJECT_NAME} > md5sum.txt
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND sha256sum ${PROJECT_NAME} > sha256sum.txt
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
