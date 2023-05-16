@@ -21,7 +21,7 @@ FixNamespaceComments: 'true'
 IndentWidth: '4'
 Language: Cpp
 NamespaceIndentation: All
-SortIncludes: 'false'
+SortIncludes: 'true'
 ShortNamespaceLines: 0
 SpaceAfterCStyleCast: 'true'
 TabWidth: '4'
