@@ -6,12 +6,16 @@ set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
 project(tercom CXX)
 
-option(BUILD_EXAMPLES "Build all examples")
+option(BUILD_STATIC "Build static library")
+option(BUILD_EXAMPLES "Build examples")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 source_group(Source FILES ${SOURCES})
-add_library(lib-tercom STATIC ${SOURCES})
+
+add_library(tercom STATIC ${SOURCES})
+add_library(tercomstatic SHARED ${SOURCES})
+set_target_properties(tercomstatic PROPERTIES OUTPUT_NAME tercom)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)

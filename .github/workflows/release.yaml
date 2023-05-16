@@ -11,7 +11,14 @@ jobs:
             - name: Build
               run: ./build.sh
 
-            # - uses: actions/upload-artifact@v3
-            #   with:
-            #       name: tercom-missile-guidance-${{ github.sha }}
-            #       path: ./build/bin
+            - name: Upload Static Library
+              uses: actions/upload-artifact@v3
+              with:
+                  name: libtercom.a
+                  path: ./build/libtercom.a
+
+            - name: Upload Shared Library
+              uses: actions/upload-artifact@v3
+              with:
+                  name: libtercom.so
+                  path: ./build/libtercom.so

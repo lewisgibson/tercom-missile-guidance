@@ -1,7 +1,7 @@
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_executable(tracking src/main.cpp)
-target_link_libraries(tracking PRIVATE lib-tercom)
+target_link_libraries(tracking PRIVATE tercom)
 set_property(TARGET tracking PROPERTY FOLDER "tracking")
 
 add_custom_command(
